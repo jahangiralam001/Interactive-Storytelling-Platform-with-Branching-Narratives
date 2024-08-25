@@ -1,63 +1,68 @@
 <?php
-// Database connection settings
-$servername = "localhost";
-$username = "root"; // replace with your database username
-$password = " "; // replace with your database password
-$dbname = "storyliner"; // replace with your database name
 
-// Create connection
+$servername = "localhost";
+$username = "root"; 
+$password = ""; 
+$dbname = "storyliner"; 
+
+
 $conn = new mysqli($servername, $username, $password, $dbname);
 
-// Check connection
+
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
+ 
 
-// Function to handle file upload
-function uploadFile($fileInputName) {
-    if (isset($_FILES[$fileInputName])) {
-        $file = $_FILES[$fileInputName];
-        if ($file['error'] == 0) {
-            $targetDir = "uploads/";
-            $targetFile = $targetDir . basename($file["name"]);
-            move_uploaded_file($file["tmp_name"], $targetFile);
-            return $targetFile; // Return the path of the uploaded file
-        }
+function uploadFileToDatabase($fileInputName) {
+    if (isset($_FILES[$fileInputName]) && $_FILES[$fileInputName]['error'] == 0) {
+        $fileData = file_get_contents($_FILES[$fileInputName]['tmp_name']); 
+        return $fileData; 
     }
     return null;
 }
 
-// Check which button was clicked
+
 if (isset($_POST['action']) && $_POST['action'] == 'publish') {
-    // Sanitize and collect form data
+    
     $title = $_POST['title'];
     $storyBody = $_POST['story-body'];
-    $storyImage = uploadFile('story-image');
+    $storyImage = uploadFileToDatabase('story-image'); 
+    $storyType = $_POST['story-type'];
     
-    // Insert story into the database
-    $stmt = $conn->prepare("INSERT INTO Stories (title, description, image_url, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())");
-    $stmt->bind_param("sss", $title, $storyBody, $storyImage);
+   
+    $stmt = $conn->prepare("INSERT INTO Stories (title, description, image_url, story_type, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())");
+    $stmt->bind_param("ssss", $title, $storyBody, $storyImage, $storyType);
+    $stmt->send_long_data(2, $storyImage); 
     $stmt->execute();
-    $storyId = $stmt->insert_id; // Get the ID of the inserted story
+    $storyId = $stmt->insert_id; 
     $stmt->close();
     
-    // Handle story sections and branches
-    foreach ($_POST['section-body'] as $index => $sectionBody) {
-        $stmt = $conn->prepare("INSERT INTO Story_Sections (story_id, section_title, section_text, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())");
-        $sectionTitle = "Section " . ($index + 1);
-        $stmt->bind_param("iss", $storyId, $sectionTitle, $sectionBody);
-        $stmt->execute();
-        $sectionId = $stmt->insert_id; // Get the ID of the inserted section
-        $stmt->close();
-        
-        // Insert branches for each section
-        if (isset($_POST['branch'][$index])) {
-            foreach ($_POST['branch'][$index] as $branchText) {
-                if (!empty($branchText)) {
-                    $stmt = $conn->prepare("INSERT INTO Options (section_id, option_text, next_section_id, created_at, updated_at) VALUES (?, ?, NULL, NOW(), NOW())");
-                    $stmt->bind_param("is", $sectionId, $branchText);
-                    $stmt->execute();
-                    $stmt->close();
+   
+    if (isset($_POST['section-body'])) {
+        $sectionCount = count($_POST['section-body']);
+        for ($i = 0; $i < $sectionCount; $i++) {
+            $sectionBody = $_POST['section-body'][$i];
+            
+            
+            $stmt = $conn->prepare("INSERT INTO Story_Sections (story_id, section_title, section_text, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())");
+            $sectionTitle = "Section " . ($i + 1);
+            $stmt->bind_param("iss", $storyId, $sectionTitle, $sectionBody);
+            $stmt->execute();
+            $sectionId = $stmt->insert_id; 
+            $stmt->close();
+            
+       
+            if (isset($_POST['branch'][$i])) {
+                foreach ($_POST['branch'][$i] as $key => $branchOption) {
+                  
+                    $branchBody = isset($_POST['branch_body'][$i][$key]) ? $_POST['branch_body'][$i][$key] : '';
+                    if (!empty($branchOption)) {
+                        $stmt = $conn->prepare("INSERT INTO Branches (section_id, branch_option, branch_body, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())");
+                        $stmt->bind_param("iss", $sectionId, $branchOption, $branchBody);
+                        $stmt->execute();
+                        $stmt->close();
+                    }
                 }
             }
         }
