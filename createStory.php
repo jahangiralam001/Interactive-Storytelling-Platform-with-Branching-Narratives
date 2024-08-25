@@ -36,11 +36,11 @@
         </div>
     </nav>
 
-    <!-- Create Story Section -->
-    <section class="create-story">
+<!-- Create Story Section -->
+<section class="create-story">
         <div class="container">
             <h1>Create Your Story</h1>
-            <form action="/saveStory" method="post">
+            <form action="./constants/saveStory.php" method="post" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="title">Story Title:</label>
                     <input type="text" id="title" name="title" required>
@@ -49,22 +49,25 @@
                     <label for="story-body">Story Body:</label>
                     <textarea id="story-body" name="story-body" rows="10" required></textarea>
                 </div>
+                <div class="form-group">
+                    <label for="story-image">Story Image:</label>
+                    <input type="file" id="story-image" name="story-image" accept="image/*">
+                </div>
                 <div id="sections-container">
-                    <h2>Branch</h2>
-                    <!-- Default Section -->
+                    <h2>Branches</h2>
+             
                     <div class="section" id="section-1">
-                      
                         <div class="form-group">
                             <label for="section-body-1">Branch Body:</label>
-                            <textarea id="section-body-1" name="section-body-1" rows="5" required></textarea>
+                            <textarea id="section-body-1" name="section-body[]" rows="5" required></textarea>
                         </div>
                         <div class="form-group">
                             <label>Branches:</label>
                             <div class="branch">
-                                <input type="text" name="branch-1-1" placeholder="Option A">
+                                <input type="text" name="branch[0][]" placeholder="Option A">
                             </div>
                             <div class="branch">
-                                <input type="text" name="branch-1-2" placeholder="Option B">
+                                <input type="text" name="branch[0][]" placeholder="Option B">
                             </div>
                         </div>
                         <button type="button" class="remove-section">Remove Section</button>
@@ -79,6 +82,7 @@
             </form>
         </div>
     </section>
+
 
     <!-- Footer Section -->
     <footer>
